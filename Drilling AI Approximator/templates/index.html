@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Drilling AI Optimizer</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<!-- Background Video -->
+<video autoplay muted loop id="bgVideo">
+  <source src="/static/video/bg.mp4" type="video/mp4">
+</video>
+
+<div class="overlay"></div>
+
+<div class="main-wrapper glass-shell">
+
+  <!-- LEFT PANEL (FORM) -->
+  <div class="panel left-panel glass" id="leftPanel">
+    <div class="panel-header">
+      <h1>Drilling AI Optimizer</h1>
+      <p>Smart ROP, Cost & Bit-Life Engine</p>
+    </div>
+
+    <form method="post" id="calcForm" class="form-grid">
+      <input type="number" name="wob" placeholder="WOB (kN)" required>
+      <input type="number" name="rpm" placeholder="RPM" required>
+
+      <select name="location">
+        <option value="">Select Location</option>
+        <option value="kg">KG Basin</option>
+        <option value="bombay">Bombay High</option>
+        <option value="rajasthan">Rajasthan</option>
+        <option value="assam">Assam</option>
+        <option value="gulf">Middle East</option>
+      </select>
+
+      <input type="number" name="ucs" placeholder="OR Enter UCS (psi)">
+
+      <select name="formation">
+        <option value="">OR Formation</option>
+        <option value="shale">Shale</option>
+        <option value="sandstone">Sandstone</option>
+        <option value="limestone">Limestone</option>
+        <option value="dolomite">Dolomite</option>
+        <option value="granite">Granite</option>
+      </select>
+
+      <input type="number" name="depth" placeholder="Depth (m)" required>
+      <input type="number" name="rig_cost" placeholder="Rig Cost/hr" required>
+      <input type="number" name="bit_cost" placeholder="Bit Cost" required>
+      <input type="number" name="abrasiveness" placeholder="Abrasiveness" required>
+
+      <div class="button-row">
+        <button type="submit" class="primary-btn">Calculate</button>
+        <button type="button" class="ghost-btn" id="resetBtn">Reset</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- RIGHT PANEL (ELEGANT RESULT VIEW) -->
+  <div class="panel right-panel glass" id="rightPanel">
+
+    {% if result and result.ucs %}
+    <div class="result-card">
+      <h2>Optimized Results</h2>
+
+      <div class="result-grid">
+        <div><span>UCS</span><p>{{ result.ucs }} psi</p></div>
+        <div><span>ROP</span><p>{{ result.rop }} m/hr</p></div>
+        <div><span>Time</span><p>{{ result.time }} hr</p></div>
+        <div><span>Cost/m</span><p>{{ result.cost }}</p></div>
+        <div><span>Bit Life</span><p>{{ result.bitlife }} hr</p></div>
+      </div>
+
+      <h3>Optimal Window</h3>
+      <div class="result-grid">
+        <div><span>Best WOB</span><p>{{ result.best_wob }}</p></div>
+        <div><span>Best RPM</span><p>{{ result.best_rpm }}</p></div>
+        <div><span>Min Cost</span><p>{{ result.min_cost }}</p></div>
+      </div>
+
+      <div class="download-box">
+        <a href="/export/pdf"><button class="ghost-btn">Download PDF</button></a>
+        <a href="/export/excel"><button class="ghost-btn">Download Excel</button></a>
+      </div>
+    </div>
+
+    <div class="chart-box glass">
+      <canvas id="costChart"></canvas>
+    </div>
+
+    <div class="chart-box glass">
+      <canvas id="ropChart"></canvas>
+    </div>
+
+    <script>
+      const wob = {{ result.wob_curve|safe }};
+      const cost = {{ result.cost_curve|safe }};
+      const rop = {{ result.rop_curve|safe }};
+      const bestWob = {{ result.best_wob|safe }};
+      const minCost = {{ result.min_cost|safe }};
+
+      const optimal = wob.map(x => x === bestWob ? minCost : null);
+      const opt = { responsive: true, maintainAspectRatio: false };
+
+      new Chart(costChart, {
+        type: "line",
+        data: { labels: wob, datasets: [
+          { label: "Cost vs WOB", data: cost, tension: 0.4 },
+          { label: "Optimal", data: optimal, pointRadius: 6, showLine: false }
+        ]},
+        options: opt
+      });
+
+      new Chart(ropChart, {
+        type: "line",
+        data: { labels: wob, datasets: [
+          { label: "ROP vs WOB", data: rop, tension: 0.4 }
+        ]},
+        options: opt
+      });
+    </script>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const hasResult = {{ 'true' if result and result.ucs else 'false' }};
+  if (hasResult) {
+    leftPanel.classList.add("slide-left");
+    rightPanel.classList.add("slide-in");
+  }
+
+  resetBtn.onclick = () => {
+    calcForm.reset();
+    leftPanel.classList.remove("slide-left");
+    rightPanel.classList.remove("slide-in");
+    window.location.href = "/";
+  };
+});
+</script>
+
+</body>
+</html>
